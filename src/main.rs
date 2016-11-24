@@ -80,8 +80,6 @@ impl<T> Table<T> where T: Default + SimpleHash + Copy + Eq {
         }
     }
 
-    // E((x - Ex)^2) = E(x^2) -2xEx  +E(x)^2
-
     fn hash_key(key: T) -> usize {
         let h = key.hash();
         if h == 0 { 1 } else { h }
@@ -108,7 +106,6 @@ fn main() {
     for &key in to_insert.iter() {
         table.insert(key);
     }
-    //    let mut lookups = vec![0; n];
 
     let start = Instant::now();
 
@@ -133,6 +130,9 @@ fn main() {
     let end = Instant::now();
 
     let mean = sum as f64 / number as f64;
+    // E((x - Ex)^2)
+    // = E(x^2) - 2E(x Ex) + (Ex)^2
+    // = E(x^2) - (Ex)^2
     let variance = (sum_squares as f64 / number as f64 - mean * mean).sqrt();
 
     let duration = end - start;
