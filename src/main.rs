@@ -14,7 +14,9 @@ struct Entry<T> {
 
 struct Table<T> {
     mask: usize,
-    entries: Vec<Entry<T>>,
+    hashes: Vec<usize>,
+    keys: Vec<T>,
+//    entries: Vec<Entry<T>>,
 }
 
 trait SimpleHash {
@@ -32,7 +34,9 @@ impl<T> Table<T> where T: Default + SimpleHash + Copy + Eq {
         let n = 1 << log_capacity;
         Table {
             mask: n - 1,
-            entries: vec![Entry { key: T::default(), hash: 0 }; n],
+            hashes: vec![0; n],
+            keys: vec![T::default(); n],
+//            entries: vec![Entry { key: T::default(), hash: 0 }; n],
         }
     }
 
@@ -42,21 +46,23 @@ impl<T> Table<T> where T: Default + SimpleHash + Copy + Eq {
         let mut pos = hash & self.mask;
         let mut dist = 0;
         loop {
-            let entry = unsafe { self.entries.get_unchecked_mut(pos) };
-            if entry.hash == 0 {
-                entry.hash = hash;
-                entry.key = key;
+            let entry_hash = unsafe { self.hashes.get_unchecked_mut(pos) };
+            if *entry_hash == 0 {
+                *entry_hash = hash;
+                let entry_key = unsafe { self.keys.get_unchecked_mut(pos) };
+                *entry_key = key;
                 return
             }
             // assume no duplicated entries
-            debug_assert!(entry.key != key);
+            // debug_assert!(entry.key != key);
 
             #[cfg(feature = "robin-hood")]
             {
-                let existing_key_dist = (pos + (self.mask + 1) - entry.hash) & self.mask;
+                let existing_key_dist = (pos + (self.mask + 1) - *entry_hash) & self.mask;
                 if existing_key_dist < dist {
-                    std::mem::swap(&mut key, &mut entry.key);
-                    std::mem::swap(&mut hash, &mut entry.hash);
+                    let entry_key = unsafe { self.keys.get_unchecked_mut(pos) };
+                    std::mem::swap(&mut key, entry_key);
+                    std::mem::swap(&mut hash, entry_hash);
                     dist = existing_key_dist;
                 }
             }
@@ -70,9 +76,12 @@ impl<T> Table<T> where T: Default + SimpleHash + Copy + Eq {
         let mut pos = hash & self.mask;
         let mut probes = 1;
         loop {
-            let entry = unsafe { self.entries.get_unchecked(pos) };
-            if entry.hash == hash && entry.key == key {
-                return probes;
+            let entry_hash = unsafe { self.hashes.get_unchecked(pos) };
+            if *entry_hash == hash {
+                let entry_key = unsafe { self.keys.get_unchecked(pos) };
+                if *entry_key == key {
+                    return probes;
+                }
             }
 
             pos = (pos + 1) & self.mask;
