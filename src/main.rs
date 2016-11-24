@@ -2,7 +2,6 @@ extern crate rand;
 
 use std::collections::HashSet;
 use std::time::Instant;
-use std::mem::swap;
 use rand::Rng;
 
 #[derive(Clone, Copy)]
@@ -35,6 +34,7 @@ impl<T> Table<T> where T: Default + SimpleHash + Copy + Eq {
         }
     }
 
+    #[cfg_attr(not(feature = "robin-hood"), allow(unused))]
     pub fn insert(&mut self, mut key: T) {
         let mut hash = Table::hash_key(key);
         let mut pos = hash & self.mask;
@@ -49,12 +49,12 @@ impl<T> Table<T> where T: Default + SimpleHash + Copy + Eq {
             // assume no duplicated entries
             debug_assert!(entry.key != key);
 
-            // Robin Hood specific block. Comment out to get linear probing.
+            #[cfg(feature = "robin-hood")]
             {
                 let existing_key_dist = (pos + (self.mask + 1) - entry.hash) & self.mask;
                 if existing_key_dist < dist {
-                    swap(&mut key, &mut entry.key);
-                    swap(&mut hash, &mut entry.hash);
+                    std::mem::swap(&mut key, &mut entry.key);
+                    std::mem::swap(&mut hash, &mut entry.hash);
                     dist = existing_key_dist;
                 }
             }

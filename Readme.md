@@ -6,7 +6,8 @@ This is a super tiny benchmark of plain linear probing vs Robing Hood hashing.
 
 Download Rust via http://www.rustup.rs/.
 
-Run `cargo run --release`.
+Run `cargo run --release` for plain linear probing.
+Run `cargo run --release --features "robin-hood"` for Robin Hood hashing.
 
 To switch between linear and Robin Hood, comment a marked piece of code in `src/main.rs`
 

@@ -5,3 +5,6 @@ authors = ["Aleksey Kladov <aleksey.kladov@gmail.com>"]
 
 [dependencies]
 rand = "0.3"
+
+[features]
+robin-hood = []
