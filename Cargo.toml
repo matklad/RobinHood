@@ -5,6 +5,8 @@ authors = ["Aleksey Kladov <aleksey.kladov@gmail.com>"]
 
 [dependencies]
 rand = "0.3"
+perfcnt = "0.3"
+# streaming-stats = "0.1"
 
 [features]
 robin-hood = []

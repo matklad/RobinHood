@@ -1,8 +1,10 @@
 extern crate rand;
+extern crate perfcnt;
 
 use std::collections::HashSet;
 use std::time::Instant;
 use rand::Rng;
+use perfcnt::AbstractPerfCounter;
 
 #[derive(Clone, Copy)]
 struct Entry<T> {
@@ -63,22 +65,22 @@ impl<T> Table<T> where T: Default + SimpleHash + Copy + Eq {
         }
     }
 
-    pub fn contains(&self, key: T) -> Result<usize, usize> {
+    pub fn probe_len(&self, key: T) -> usize {
         let hash = Table::hash_key(key);
         let mut pos = hash & self.mask;
         let mut probes = 1;
         loop {
             let entry = unsafe { self.entries.get_unchecked(pos) };
-            if entry.hash == 0 {
-                return Result::Err(probes);
-            }
             if entry.hash == hash && entry.key == key {
-                return Result::Ok(probes);
+                return probes;
             }
+
             pos = (pos + 1) & self.mask;
             probes += 1;
         }
     }
+
+    // E((x - Ex)^2) = E(x^2) -2xEx  +E(x)^2
 
     fn hash_key(key: T) -> usize {
         let h = key.hash();
@@ -106,34 +108,44 @@ fn main() {
     for &key in to_insert.iter() {
         table.insert(key);
     }
-    let mut lookups = vec![0; n];
+    //    let mut lookups = vec![0; n];
 
     let start = Instant::now();
-    for (&key, l) in to_lookup.iter().zip(lookups.iter_mut()) {
-        *l = match table.contains(key) {
-            Ok(x) => x,
-            Err(_) => unreachable!()
-        };
+
+    let mut pc =
+    perfcnt::linux::PerfCounterBuilderLinux::from_hardware_event(
+        perfcnt::linux::HardwareEventType::CacheMisses
+    ).finish().expect("Can't build a counter");
+
+    pc.start().expect("Can not start the counter");
+    let mut sum = 0;
+    let mut sum_squares = 0;
+    let mut number = 0;
+    for &key in to_lookup.iter() {
+        let p = table.probe_len(key);
+        sum += p;
+        sum_squares += p * p;
+        number += 1;
     }
+    pc.stop().expect("Can not start the counter");
+    let cache_misses = pc.read().expect("Can not read the counter");
+
     let end = Instant::now();
 
-    let mean = lookups.iter()
-        .map(|&x| x as f64)
-        .sum::<f64>() / n as f64;
-
-    let variance = (lookups.iter()
-        .map(|&x| x as f64)
-        .map(|x| (x - mean).powi(2))
-        .sum::<f64>() / (n - 1) as f64).sqrt();
+    let mean = sum as f64 / number as f64;
+    let variance = (sum_squares as f64 / number as f64 - mean * mean).sqrt();
 
     let duration = end - start;
     let duration_ms = duration.as_secs() as u32 * 1000 + duration.subsec_nanos() / 1_000_000;
 
-    println!("capacity {}\n\
-              mean     {}\n\
-              variance {}\n\
-              duration {}ms",
+    println!("table capacity  {}\n\n\
+              probe mean      {}\n\
+              probe variance  {}\n\n\
+              duration        {}ms\n\
+              cache misses    {}",
              (1 << log_cap),
-             mean, variance,
-             duration_ms);
+             mean,
+             variance,
+             duration_ms,
+             cache_misses);
 }
