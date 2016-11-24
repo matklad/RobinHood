@@ -95,8 +95,8 @@ fn rand_vec(n: usize) -> Vec<u64> {
 }
 
 fn main() {
-    let log_cap = 22;
-    let n = (1 << log_cap) * 95 / 100;
+    let log_cap = 23;
+    let n = (1 << log_cap) * 90 / 100;
     let to_insert = rand_vec(n);
 
     let mut to_lookup = to_insert.clone();
@@ -127,7 +127,7 @@ fn main() {
         .sum::<f64>() / (n - 1) as f64).sqrt();
 
     let duration = end - start;
-    let duration_ms = duration.as_secs() * 1000 + duration.subsec_nanos() / 1_000_000;
+    let duration_ms = duration.as_secs() as u32 * 1000 + duration.subsec_nanos() / 1_000_000;
 
     println!("capacity {}\n\
               mean     {}\n\
