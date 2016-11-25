@@ -110,8 +110,10 @@ fn main() {
     let start = Instant::now();
 
     let mut pc =
-    perfcnt::linux::PerfCounterBuilderLinux::from_hardware_event(
-        perfcnt::linux::HardwareEventType::CacheMisses
+    perfcnt::linux::PerfCounterBuilderLinux::from_cache_event(
+        perfcnt::linux::CacheId::L1D,
+        perfcnt::linux::CacheOpId::Read,
+        perfcnt::linux::CacheOpResultId::Miss,
     ).finish().expect("Can't build a counter");
 
     pc.start().expect("Can not start the counter");
