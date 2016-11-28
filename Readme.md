@@ -11,8 +11,6 @@ the benchmark uses linux specific performance counters. To use nightly compiler,
 Run `cargo run --release` for plain linear probing.
 Run `cargo run --release --features "robin-hood"` for Robin Hood hashing.
 
-To switch between linear and Robin Hood, comment a marked piece of code in `src/main.rs`
-
 ## Description
 
 A hash table with fixed size of `8_388_608` is created and filled up to 9/10 of capacity.
